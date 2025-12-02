@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import prisma from '../config/database';
 import { authenticateToken, AuthRequest } from '../middleware/auth.middleware';
 import { body, validationResult } from 'express-validator';
@@ -7,7 +7,9 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
-// Register a new tenant (store)
+// ==============================
+// Register a new tenant
+// ==============================
 router.post(
   '/register',
   [
@@ -17,7 +19,7 @@ router.post(
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   ],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -26,7 +28,7 @@ router.post(
 
       const { shopDomain, accessToken, name, email, password } = req.body;
 
-      // Check if tenant already exists
+      // Check tenant exists
       const existingTenant = await prisma.tenant.findUnique({
         where: { shopDomain },
       });
@@ -35,7 +37,7 @@ router.post(
         return res.status(400).json({ error: 'Tenant with this shop domain already exists' });
       }
 
-      // Check if user already exists
+      // Check user exists
       const existingUser = await prisma.user.findUnique({
         where: { email },
       });
@@ -47,7 +49,7 @@ router.post(
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create tenant and user
+      // Create tenant
       const tenant = await prisma.tenant.create({
         data: {
           shopDomain,
@@ -57,6 +59,7 @@ router.post(
         },
       });
 
+      // Create user
       const user = await prisma.user.create({
         data: {
           email,
@@ -66,8 +69,8 @@ router.post(
         },
       });
 
-      // Generate JWT token
-      const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+      // Generate token
+      const jwtSecret = process.env.JWT_SECRET || 'secret-key';
       const token = jwt.sign(
         { userId: user.id, tenantId: tenant.id, email: user.email },
         jwtSecret,
@@ -95,14 +98,16 @@ router.post(
   }
 );
 
+// ==============================
 // Login
+// ==============================
 router.post(
   '/login',
   [
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required'),
   ],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -125,7 +130,7 @@ router.post(
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+      const jwtSecret = process.env.JWT_SECRET || 'secret-key';
       const token = jwt.sign(
         { userId: user.id, tenantId: user.tenantId, email: user.email },
         jwtSecret,
@@ -155,8 +160,10 @@ router.post(
   }
 );
 
-// Get current tenant info (protected)
-router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
+// ==============================
+// Get current tenant
+// ==============================
+router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.tenantId) {
       return res.status(403).json({ error: 'Tenant access required' });
@@ -185,4 +192,3 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 export default router;
-
