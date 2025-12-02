@@ -1,0 +1,174 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tenant model for multi-tenancy support
+model Tenant {
+  id          String   @id @default(uuid())
+  shopDomain  String   @unique // e.g., "mystore.myshopify.com"
+  accessToken String   // Shopify access token
+  name        String
+  email       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]
+  customers   Customer[]
+  orders      Order[]
+  products    Product[]
+  events      Event[]
+
+  @@map("tenants")
+}
+
+// User model for dashboard authentication
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  tenantId  String?  // Optional: link user to tenant
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@map("users")
+}
+
+// Customer model
+model Customer {
+  id              String   @id @default(uuid())
+  tenantId        String
+  shopifyId       String   // Shopify customer ID
+  email           String?
+  firstName       String?
+  lastName        String?
+  phone           String?
+  totalSpent      Decimal  @default(0) @db.Decimal(10, 2)
+  ordersCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  shopifyCreatedAt DateTime?
+  shopifyUpdatedAt DateTime?
+
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders          Order[]
+
+  @@unique([tenantId, shopifyId])
+  @@index([tenantId])
+  @@index([email])
+  @@map("customers")
+}
+
+// Product model
+model Product {
+  id              String   @id @default(uuid())
+  tenantId        String
+  shopifyId       String   // Shopify product ID
+  title           String
+  handle          String?
+  vendor          String?
+  productType     String?
+  status          String?
+  price           Decimal? @db.Decimal(10, 2)
+  compareAtPrice  Decimal? @db.Decimal(10, 2)
+  inventoryQuantity Int?   @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  shopifyCreatedAt DateTime?
+  shopifyUpdatedAt DateTime?
+
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderItems      OrderItem[]
+
+  @@unique([tenantId, shopifyId])
+  @@index([tenantId])
+  @@map("products")
+}
+
+// Order model
+model Order {
+  id              String   @id @default(uuid())
+  tenantId        String
+  shopifyId       String   // Shopify order ID
+  orderNumber     String?
+  email           String?
+  financialStatus String?  // paid, pending, refunded, etc.
+  fulfillmentStatus String? // fulfilled, partial, unfulfilled
+  totalPrice      Decimal  @db.Decimal(10, 2)
+  subtotalPrice   Decimal? @db.Decimal(10, 2)
+  totalTax        Decimal? @db.Decimal(10, 2)
+  totalDiscounts  Decimal? @db.Decimal(10, 2)
+  currency        String?  @default("USD")
+  customerId      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  shopifyCreatedAt DateTime?
+  shopifyUpdatedAt DateTime?
+
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+
+  @@unique([tenantId, shopifyId])
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([shopifyCreatedAt])
+  @@map("orders")
+}
+
+// OrderItem model
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  productId       String?
+  shopifyProductId String?
+  title           String
+  quantity        Int
+  price           Decimal  @db.Decimal(10, 2)
+  totalDiscount   Decimal? @db.Decimal(10, 2)
+  sku             String?
+  variantTitle    String?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// Event model for custom events (cart abandoned, checkout started, etc.)
+model Event {
+  id              String   @id @default(uuid())
+  tenantId        String
+  eventType       String   // "cart_abandoned", "checkout_started", etc.
+  customerId      String?
+  orderId         String?
+  metadata        String?  @db.Text // JSON string for additional data
+  createdAt       DateTime @default(now())
+
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("events")
+}
+

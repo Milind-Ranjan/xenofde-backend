@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: xenofde-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build && npx prisma generate
+    startCommand: npx prisma migrate deploy && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SYNC_INTERVAL
+        value: "0 */6 * * *"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: xenofde-db
+          property: connectionString
+
+databases:
+  - name: xenofde-db
+    plan: free
+    databaseName: xenofde
+    user: xenofde
+
