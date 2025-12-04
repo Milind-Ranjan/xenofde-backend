@@ -11,7 +11,6 @@ A comprehensive multi-tenant platform for ingesting, storing, and analyzing Shop
 - [Database Schema](#database-schema)
 - [Known Limitations & Assumptions](#known-limitations--assumptions)
 - [Deployment](#deployment)
-- [Webhook Setup](#webhook-setup)
 
 ---
 
@@ -122,11 +121,11 @@ A comprehensive multi-tenant platform for ingesting, storing, and analyzing Shop
 
 ```bash
 # Backend
-git clone https://github.com/YOUR_USERNAME/xenofde-backend.git
+git clone https://github.com/Milind-Ranjan/xenofde-backend.git
 cd xenofde-backend
 
 # Frontend (in separate directory)
-git clone https://github.com/YOUR_USERNAME/xenofde-frontend.git
+git clone https://github.com/Milind-Ranjan/xenofde-frontend.git
 cd xenofde-frontend
 ```
 
@@ -569,23 +568,6 @@ NEXT_PUBLIC_API_URL=<your backend URL>
 NODE_ENV=production
 ```
 
-See `WEBHOOK_SETUP.md` for webhook configuration.
-
----
-
-## 🔗 Webhook Setup
-
-For real-time data synchronization, configure Shopify webhooks. See `WEBHOOK_SETUP.md` for detailed instructions.
-
-**Webhook URL:**
-```
-https://xenofde-backend-production.up.railway.app/api/webhooks/shopify
-```
-
-This is your production webhook URL. Use this exact URL when configuring webhooks in Shopify Admin.
-
----
-
 ## 🛠️ Tech Stack
 
 - **Backend:** Node.js, Express.js, TypeScript
@@ -595,22 +577,6 @@ This is your production webhook URL. Use this exact URL when configuring webhook
 - **Scheduling:** node-cron
 - **Charts:** Recharts
 - **Deployment:** Docker, Railway/Render/Heroku ready
-
----
-
-## 📄 License
-
-ISC
-
----
-
-## 🆘 Support
-
-For issues or questions:
-- Check backend logs for errors
-- Verify environment variables are set correctly
-- Ensure database is accessible
-- Review `WEBHOOK_SETUP.md` for webhook configuration
 
 ---
 
